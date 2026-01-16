@@ -17,7 +17,7 @@ export function TerminalPagination({
     // Logic to generate page numbers with ellipsis
     const getPageNumbers = () => {
         const pages = []
-        const showMax = 6 
+        const showMax = 5
 
         if (totalPages <= showMax) {
         for (let i = 1; i <= totalPages; i++) pages.push(i)
