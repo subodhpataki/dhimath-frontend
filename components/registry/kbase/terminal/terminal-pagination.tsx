@@ -57,8 +57,8 @@ export function TerminalPagination({
                 className={cn(
                     "h-5 w-5 flex items-center justify-center rounded transition-colors",
                     currentPage === page
-                    ? "bg-slate-300 font-bold text-slate-800"
-                    : "text-slate-500 hover:bg-slate-200 hover:text-slate-700"
+                    ? "bg-blue-200 font-bold text-gray-700"
+                    : "text-gray-400 hover:bg-blue-100 hover:text-gray-500"
                 )}
                 >
                 {page}

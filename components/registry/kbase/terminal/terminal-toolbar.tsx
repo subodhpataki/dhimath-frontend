@@ -46,7 +46,7 @@ export function TerminalToolbar({
             <Button
             onClick={onSearchTrigger}
             disabled={isEditing}
-            className=" hover:text-white rounded-s-xs cursor-pointer z-10 disabled:cursor-not-allowed"
+            className=" hover:text-white rounded-0 rounded-s-xs cursor-pointer z-10 disabled:cursor-not-allowed"
             title="Click to search"
             >
             <Search className="h-3.5 w-3.5" />

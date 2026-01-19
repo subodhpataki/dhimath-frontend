@@ -61,7 +61,7 @@ export function SearchableSelect({
         >
         <div
             className={cn(
-            "flex items-center justify-between w-full px-3 py-2 text-sm border rounded-md bg-white shadow-sm transition-all hover:border-slate-300",
+            "flex items-center justify-between w-full px-2 py-1 text-xs border rounded-sm bg-white shadow-sm transition-all hover:border-slate-300",
             isOpen ? "ring-2 ring-blue-100 border-blue-400" : "border-slate-200",
             disabled ? "pointer-events-none bg-slate-50" : "cursor-pointer"
             )}

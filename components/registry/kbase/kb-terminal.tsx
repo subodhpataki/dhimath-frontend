@@ -174,7 +174,7 @@ export function KBTerminal({
         )}
 
         {(activeChunks.length > 0 || loading) && (
-            <div className={`flex-1 flex flex-col m-4 rounded-xl border bg-white shadow-sm overflow-hidden animate-in fade-in zoom-in-95 duration-300 relative transition-colors ${isEditing ? "border-amber-400 ring-2 ring-amber-100" : "border-slate-200"}`}>
+            <div className={`flex-1 flex flex-col m-4 rounded-lg border bg-white shadow-sm overflow-hidden animate-in fade-in zoom-in-95 duration-300 relative transition-colors ${isEditing ? "border-amber-400 ring-2 ring-amber-100" : "border-slate-200"}`}>
             
             <TerminalHeader 
                 loading={loading}

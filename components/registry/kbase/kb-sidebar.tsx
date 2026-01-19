@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Settings2, Bot, FolderGit2, FileText, Loader2, Play, PanelLeftClose, PanelLeftOpen } from "lucide-react"
+import { Settings2, Bot, FolderGit2, FileText, Loader2, Play, PanelLeftClose, PanelLeftOpen, Check, Info } from "lucide-react"
 import { Button } from "@/components/greywiz-ui/button"
 import { SearchableSelect } from "./searchable-select"
 import { cn } from "@/lib/utils"
@@ -42,11 +42,11 @@ export function KBSidebar({
         <div 
         className={cn(
             "border-r bg-slate-50/50 flex flex-col transition-all duration-300 ease-in-out shrink-0 overflow-hidden",
-            collapsed ? "w-15" : "w-full md:w-[320px]"
+            collapsed ? "w-12" : "w-full md:w-70"
         )}
         >
         {/* HEADER */}
-        <div className={cn("p-4 border-b bg-white flex items-center h-14.25", collapsed ? "justify-center" : "justify-between")}>
+        <div className={cn("p-2 border-b bg-white flex items-center", collapsed ? "justify-center" : "justify-between")}>
             {!collapsed && (
                 <h2 className="font-semibold flex items-center gap-2 whitespace-nowrap">
                 <Settings2 className="w-4 h-4 text-slate-500" />
@@ -65,8 +65,13 @@ export function KBSidebar({
         </div>
 
         {/* CONTENT - Hidden if collapsed */}
-        <div className={cn("flex-1 flex flex-col overflow-hidden transition-opacity duration-200", collapsed ? "opacity-0 invisible" : "opacity-100 visible")}>
-            <div className="p-5 flex-1 overflow-y-auto w-[320px]"> {/* Fixed width inner container prevents reflow during transition */}
+        <div
+            className={cn(
+                "flex-1 flex flex-col overflow-hidden transition-all duration-200",
+                collapsed && "hidden"
+            )}
+        >
+            <div className="p-2 flex-1 overflow-y-auto w-70"> {/* Fixed width inner container prevents reflow during transition */}
                 
                 {/* STEP 1: AGENT */}
                 <div className="relative pb-6">
@@ -126,20 +131,28 @@ export function KBSidebar({
 
                 {/* Status Hint */}
                 <div
-                className={cn(
-                    "mt-8 rounded-md p-3 text-xs leading-relaxed border transition-all duration-500",
-                    docId
-                    ? "bg-green-50 text-green-700 border-green-200"
-                    : "bg-blue-50 text-blue-700 border-blue-100"
-                )}
-                >
-                {docId
-                    ? "✓ Ready to extract. Click 'Run Kbase' to proceed."
-                    : "Select all fields sequentially to enable extraction."}
+                    className={cn(
+                        "mt-8 flex items-start gap-2 rounded-md p-2 text-xs border transition-all duration-500",
+                        docId
+                        ? "bg-green-50 text-green-700 border-green-200"
+                        : "bg-blue-50 text-blue-700 border-blue-100"
+                    )}
+                    >
+                    {docId ? (
+                        <Check className="h-3.5 w-3.5 mt-px shrink-0" />
+                    ) : (
+                        <Info className="h-3.5 w-3.5 mt-px shrink-0" />
+                    )}
+
+                    <span className="leading-relaxed">
+                        {docId
+                        ? "Ready to extract. Click 'Run Kbase' to proceed."
+                        : "Select all fields sequentially to enable extraction."}
+                    </span>
                 </div>
             </div>
 
-            <div className="p-5 border-t bg-white mt-auto w-[320px]">
+            <div className="p-2 border-t bg-white mt-auto w-70">
                 <Button
                 className="w-full hover:cursor-pointer bg-[#066eca] hover:bg-[#066eca]/90 text-white shadow-md transition-all"
                 disabled={!agentId || !projectId || !docId || loading}
@@ -157,13 +170,20 @@ export function KBSidebar({
         
         {/* Collapsed Vertical Text (Optional visual cue) */}
         {collapsed && (
-            <div className="flex-1 flex flex-col items-center justify-start pt-8 gap-4 opacity-50">
+            <div 
+                className="mt-5 flex-1 flex flex-col items-center justify-start gap-4 opacity-50 hover:cursor-pointer"
+                title={!agentId || !projectId || !docId ? "Select Agent, Project & Document" : "Run Kbase"}
+            >
                 <div className="p-2 bg-slate-200 rounded">
                     <Bot size={16} />
                 </div>
                 <div className="w-px h-8 bg-slate-300" />
                 <div className="p-2 bg-slate-200 rounded">
                     <FolderGit2 size={16} />
+                </div>
+                <div className="w-px h-8 bg-slate-300" />
+                <div className="p-2 bg-slate-200 rounded">
+                    <FileText size={16} />
                 </div>
             </div>
         )}

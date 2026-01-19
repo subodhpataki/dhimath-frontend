@@ -155,22 +155,24 @@ export function TerminalChunkItem({
         </AccordionTrigger>
 
         <AccordionContent className="px-0 pb-0 border-t border-slate-100">
-            <div className="flex flex-col">
-            {isTextEditing ? (
-                <textarea
-                className="w-full h-48 text-xs font-mono bg-slate-900 text-gray-300 p-3 focus:outline-none resize-y block border-0"
-                value={chunk.content}
-                onChange={(e) => onContentChange && onContentChange(e.target.value)}
-                spellCheck={false}
-                autoFocus
-                />
-            ) : (
-                <pre className="whitespace-pre-wrap text-gray-300 text-xs font-mono bg-slate-900 p-3 m-0 rounded-b-md overflow-x-auto">
-                <HighlightText text={chunk.content} query={searchQuery} />
-                </pre>
-            )}
-            </div>
-        </AccordionContent>
+    <div className="flex flex-col">
+    {isTextEditing ? (
+        <textarea
+        // CHANGED: bg-slate-50 (light), text-slate-800 (dark readable text)
+        className="w-full h-48 text-xs font-mono bg-slate-50 text-slate-800 p-3 focus:outline-none resize-y block border-0 placeholder:text-slate-400"
+        value={chunk.content}
+        onChange={(e) => onContentChange && onContentChange(e.target.value)}
+        spellCheck={false}
+        autoFocus
+        />
+    ) : (
+        // CHANGED: bg-slate-50 (light), text-slate-700 (dark readable text)
+        <pre className="whitespace-pre-wrap text-slate-700 text-xs font-mono bg-slate-50 p-3 m-0 rounded-b-md overflow-x-auto">
+        <HighlightText text={chunk.content} query={searchQuery} />
+        </pre>
+    )}
+    </div>
+</AccordionContent>
         </AccordionItem>
     )
 }

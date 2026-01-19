@@ -47,7 +47,7 @@ const MOCK_KB_CHUNKS: KBChunk[] = Array.from({ length: 14 }).map((_, i) => ({
     content: `Chunk #${i + 1}: This is the content of the sample PDF. Clicking the link above will open the file.`
 }))
 
-export default function AutoLearnKBLayout() {
+export default function KBLayout() {
     // --- STATE ---
     const [agentId, setAgentId] = React.useState("")
     const [projectId, setProjectId] = React.useState("")
@@ -138,7 +138,7 @@ export default function AutoLearnKBLayout() {
 
     // --- RENDER ---
     return (
-        <div className="flex h-[85vh] w-full border rounded-xl overflow-hidden bg-background shadow-sm relative">
+        <div className="flex h-[80vh] w-full border rounded-lg overflow-hidden bg-background shadow-sm relative">
         
         {/* 1. SIDEBAR (Left) */}
         <KBSidebar
