@@ -28,14 +28,14 @@ export const InitialsIconPicker: React.FC<InitialsIconPickerProps> = ({
         className={`
             w-12 h-12 rounded-full
             flex items-center justify-center
-            border text-lg font-semibold
+            border text-md font-semibold
             select-none shadow-sm
             transition-transform
-            ${onClick ? "cursor-pointer hover:scale-110 active:scale-95 hover:ring-2 hover:ring-offset-2 hover:ring-black" : ""}
+            ${onClick ? "cursor-pointer hover:scale-110 active:scale-95 hover:ring-2 hover:ring-offset-2 hover:ring-blue-700" : ""}
         `}
         style={{
             backgroundColor: bgColor,
-            color: "#ffffff",
+            color: "#fff",
             letterSpacing: "0.04em",
         }}
         >

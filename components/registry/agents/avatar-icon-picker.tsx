@@ -31,7 +31,7 @@ const DEFAULT_ICONS = [
 function getSearchTerms(input: string) {
     return input
         .toLowerCase()
-        .replace(/[^a-z0-9\s]/g, "") // Clean special characters
+        .replace(/[^a-z0-9\s]/g, "") 
         .split(" ")
         .filter((w) => w.length > 2 && !STOP_WORDS.includes(w))
     }
@@ -53,11 +53,11 @@ function getSearchTerms(input: string) {
         setLoading(true)
 
         try {
-        const term = terms[0] // 👈 single strongest term
+        const term = terms[0] 
 
         const params = new URLSearchParams({
             query: term,
-            limit: "64", // first page
+            limit: "64", 
         })
 
         const res = await fetch(`https://api.iconify.design/search?${params}`)
@@ -66,7 +66,6 @@ function getSearchTerms(input: string) {
         if (Array.isArray(data.icons) && data.icons.length > 0) {
             setIcons(data.icons.slice(0, 5))
         } else {
-            // 🔁 fallback: remove prefixes restriction
             const fallbackRes = await fetch(
             `https://api.iconify.design/search?query=${term}&limit=64`
             )
@@ -105,7 +104,7 @@ function getSearchTerms(input: string) {
                 type="button"
                 onClick={() => onSelect?.(icon)}
                 className="group border rounded-lg p-3 bg-white shadow-sm 
-                            transition-all hover:bg-slate-900 hover:scale-105 active:scale-95
+                            transition-all hover:bg-blue-900 hover:scale-105 active:scale-95
                             flex items-center justify-center"
                 >
                 <img
