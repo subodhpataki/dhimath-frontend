@@ -36,7 +36,7 @@ export function TerminalPagination({
     if (totalPages <= 1) return null
 
     return (
-        <div className="flex items-center gap-1 text-xs font-mono">
+        <div className="shrink-0 flex items-center gap-2 text-xs font-mono">
         <button
             onClick={() => onPageChange(Math.max(1, currentPage - 1))}
             disabled={currentPage === 1}

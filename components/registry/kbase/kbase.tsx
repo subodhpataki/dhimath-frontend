@@ -61,8 +61,10 @@ export default function KBLayout() {
         doc: "",
     })
 
+    const [isEditing, setIsEditing] = React.useState(false)
+
     // --- PAGINATION CONFIGURATION ---
-    const ITEMS_PER_PAGE = 5 
+    const ITEMS_PER_PAGE = 5
     const [currentPage, setCurrentPage] = React.useState(1)
     const totalPages = Math.ceil(chunks.length / ITEMS_PER_PAGE)
 
@@ -91,6 +93,8 @@ export default function KBLayout() {
         setDocId("")
         setActiveFile(null)
         setIsSidebarCollapsed(false)
+        setIsEditing(false)
+        setCurrentPage(1)
     }
 
     // --- HANDLER: Open File from Terminal ---
@@ -102,14 +106,14 @@ export default function KBLayout() {
     // --- HANDLER: Close PDF Viewer ---
     const handleCloseFile = () => {
         setActiveFile(null)
-        setIsSidebarCollapsed(false) 
+        setIsSidebarCollapsed(false)
     }
 
     // Helper to format CLI strings
     const sanitize = (str: string) => str.toLowerCase().replaceAll(" ", "_")
-    
+
     const getAgentName = () => DATA_HIERARCHY.agents.find((a) => a.id === agentId)?.name || ""
-    const getProjectName = () => 
+    const getProjectName = () =>
         DATA_HIERARCHY.projects[agentId as keyof typeof DATA_HIERARCHY.projects]?.find(
         (p) => p.id === projectId
         )?.name || ""
@@ -136,10 +140,18 @@ export default function KBLayout() {
         }, 1200)
     }
 
+    // --- STYLING LOGIC ---
+    const isFileOpen = !!activeFile;
+    
+    // FIXED: Changed rounded-r-xl to rounded-r-sm
+    const radiusClass = isFileOpen ? "rounded-r-none" : "rounded-r-sm";
+
     // --- RENDER ---
     return (
-        <div className="flex h-[80vh] w-full border rounded-lg overflow-hidden bg-background shadow-sm relative">
-        
+        <div
+        className="flex h-[80vh] w-full overflow-hidden rounded-sm bg-background shadow-sm relative transition-all duration-300"
+        >
+
         {/* 1. SIDEBAR (Left) */}
         <KBSidebar
             data={DATA_HIERARCHY}
@@ -154,30 +166,47 @@ export default function KBLayout() {
             onDocChange={setDocId}
             onRun={handleRunKBase}
         />
-        
+
         {/* 2. TERMINAL (Middle - Flex Grow) */}
-        <KBTerminal
+        <div
+            className={`
+            flex-1 min-w-0 flex flex-col h-full
+            transition-all duration-300
+            ${radiusClass}
+            ${isEditing
+                ? "border border-amber-400 z-10 rounded-e-sm"
+                : "border-y border-r border-slate-200 rounded-e-sm"
+            }
+            `}
+        >
+
+            <KBTerminal
             loading={loading}
             chunks={chunks}
             executedCmd={executedCmd}
             metadata={executionMetadata}
             onReset={handleReset}
             onOpenFile={handleOpenFile}
+            onEditModeChange={setIsEditing}
             
+            // Pass file state to sync internal radius
+            isFileOpen={isFileOpen} 
+
             // Passing Pagination Props
             itemsPerPage={ITEMS_PER_PAGE}
             currentPage={currentPage}
             totalPages={totalPages}
             onPageChange={setCurrentPage}
-        />
+            />
+        </div>
 
         {/* 3. PDF VIEWER (Right) */}
         {activeFile && (
-            <PdfViewer 
-                key={activeFile} 
-                file={activeFile}
-                page={1} 
-                onClose={handleCloseFile} 
+            <PdfViewer
+            key={activeFile}
+            file={activeFile}
+            page={1}
+            onClose={handleCloseFile}
             />
         )}
         </div>

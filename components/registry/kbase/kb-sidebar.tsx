@@ -77,7 +77,7 @@ export function KBSidebar({
                 <div className="relative pb-6">
                 <div className="absolute left-3.75 top-8 bottom-0 w-0.5 bg-slate-200" />
                 <label className="text-[10px] font-bold text-slate-500 tracking-wider mb-2 block">
-                    1. Select Agent
+                    1. Agent
                 </label>
                 <SearchableSelect
                     icon={Bot}
@@ -97,7 +97,7 @@ export function KBSidebar({
                     !agentId ? "text-slate-300" : "text-slate-500"
                     )}
                 >
-                    2. Select Project
+                    2. Project
                 </label>
                 <SearchableSelect
                     icon={FolderGit2}
@@ -117,7 +117,7 @@ export function KBSidebar({
                     !projectId ? "text-slate-300" : "text-slate-500"
                     )}
                 >
-                    3. Select Document
+                    3. Document
                 </label>
                 <SearchableSelect
                     icon={FileText}
@@ -146,7 +146,7 @@ export function KBSidebar({
 
                     <span className="leading-relaxed">
                         {docId
-                        ? "Ready to extract. Click 'Run Kbase' to proceed."
+                        ? "Ready to extract. Click 'Run Knowledge base' to proceed."
                         : "Select all fields sequentially to enable extraction."}
                     </span>
                 </div>
@@ -158,12 +158,12 @@ export function KBSidebar({
                 disabled={!agentId || !projectId || !docId || loading}
                 onClick={onRun}
                 >
+                {loading ? "Processing..." : "View KB"}
                 {loading ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                     <Play className="mr-2 h-4 w-4 fill-current" />
                 )}
-                {loading ? "Processing..." : "Run Kbase"}
                 </Button>
             </div>
         </div>
