@@ -39,7 +39,7 @@ const DATA_HIERARCHY = {
 }
 
 // 14 Chunks total
-const MOCK_KB_CHUNKS: KBChunk[] = Array.from({ length: 14 }).map((_, i) => ({
+const MOCK_KB_CHUNKS: KBChunk[] = Array.from({ length: 25 }).map((_, i) => ({
     id: i + 1,
     charsNoSpace: 90,
     charsWithSpace: 90,

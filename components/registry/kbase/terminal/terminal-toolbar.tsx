@@ -1,5 +1,7 @@
+"use client"
+
 import * as React from "react"
-import { Search, Edit3, Save, X } from "lucide-react"
+import { Search, Edit3, Save, X, Plus } from "lucide-react"
 import { Button } from "@/components/greywiz-ui/button"
 import { Input } from "@/components/greywiz-ui/input"
 
@@ -11,6 +13,7 @@ interface TerminalToolbarProps {
     onEnterEditMode: () => void
     onSaveEdit: () => void
     onCancelEdit: () => void
+    onAddChunk: () => void
 }
 
 export function TerminalToolbar({
@@ -21,6 +24,7 @@ export function TerminalToolbar({
     onEnterEditMode,
     onSaveEdit,
     onCancelEdit,
+    onAddChunk,
     }: TerminalToolbarProps) {
     
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -46,7 +50,7 @@ export function TerminalToolbar({
             <Button
             onClick={onSearchTrigger}
             disabled={isEditing}
-            className=" hover:text-white rounded-0 rounded-s-xs cursor-pointer z-10 disabled:cursor-not-allowed"
+            className=" hover:text-white bg-blue-300 hover:bg-blue-200 rounded-0 rounded-s-xs cursor-pointer z-10 disabled:cursor-not-allowed"
             title="Click to search"
             >
             <Search className="h-3.5 w-3.5" />
@@ -57,6 +61,16 @@ export function TerminalToolbar({
         <div className="flex items-center gap-2">
             {isEditing ? (
             <>
+                {/* NEW ADD BUTTON */}
+                <Button
+                onClick={onAddChunk}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs hover:cursor-pointer border bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 transition-all"
+                >
+                <span>Add</span>
+                <Plus size={12} />
+                </Button>
+
+                <div className="h-6 w-px bg-slate-300" />
                 <Button
                 onClick={onCancelEdit}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs hover:cursor-pointer border bg-white text-slate-600 border-slate-200 hover:bg-slate-50 transition-all"
@@ -68,7 +82,7 @@ export function TerminalToolbar({
                 onClick={onSaveEdit}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs hover:cursor-pointer font-medium transition-all animate-in zoom-in-95"
                 >
-                <span>Save Changes</span>
+                <span>Save</span>
                 <Save size={12} />
                 </Button>
             </>

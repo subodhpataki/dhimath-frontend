@@ -1,55 +1,64 @@
-import * as React from "react"
+"use client"
+
+import React from "react"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { GripVertical } from "lucide-react"
 import { TerminalChunkItem, KBChunk } from "./terminal-chunk-item"
+import { GripVertical } from "lucide-react"
 
 interface DragChunkItemProps {
     chunk: KBChunk
-    isTextEditing?: boolean
-    onToggleTextEdit?: () => void
-    onContentChange?: (val: string) => void
+    isTextEditing: boolean
+    isEditingMode: boolean
+    onToggleTextEdit: () => void
+    onContentChange: (val: string) => void
     onOpenFile: (file: string) => void
+    onDelete: () => void
 }
 
 export function DragChunkItem({ 
-    chunk,
-    isTextEditing,
-    onToggleTextEdit,
+    chunk, 
+    isTextEditing, 
+    isEditingMode,
+    onToggleTextEdit, 
     onContentChange,
-    onOpenFile
-}: DragChunkItemProps) {
-
+    onOpenFile,
+    onDelete
+    }: DragChunkItemProps) {
     const {
         attributes,
         listeners,
         setNodeRef,
         transform,
         transition,
-        isDragging,
+        isDragging
     } = useSortable({ id: chunk.id })
 
     const style = {
         transform: CSS.Transform.toString(transform),
         transition,
-        opacity: isDragging ? 0.4 : 1,
-        zIndex: isDragging ? 50 : "auto",
-        position: "relative" as const,
+        zIndex: isDragging ? 10 : 1,
+        opacity: isDragging ? 0.5 : 1,
     }
 
     return (
-        <div ref={setNodeRef} style={style} className="mb-4">
+        <div ref={setNodeRef} style={style}>
         <TerminalChunkItem
             chunk={chunk}
             searchQuery=""
-            isEditing={true}
+            isEditing={isEditingMode}
             isTextEditing={isTextEditing}
             onToggleTextEdit={onToggleTextEdit}
             onContentChange={onContentChange}
             onOpenFile={onOpenFile}
+            onDelete={onDelete}
             dragHandle={
-            <div {...attributes} {...listeners}>
-                <GripVertical size={16} />
+            <div 
+                {...attributes} 
+                {...listeners} 
+                className="flex items-center justify-center p-0.5 rounded hover:bg-slate-200 transition-colors outline-none focus:ring-1 focus:ring-blue-400"
+            >
+                <GripVertical size={14} />
             </div>
             }
         />

@@ -7,7 +7,6 @@ import {
     FolderGit2,
     FileText,
     AlertCircle,
-    MoreHorizontal,
 } from "lucide-react"
 
 import { Accordion } from "@/components/greywiz-ui/accordion"
@@ -42,12 +41,8 @@ interface KBTerminalProps {
     metadata: { agent: string; project: string; doc: string }
     onReset: () => void
     onOpenFile: (file: string) => void
-
     onEditModeChange?: (editing: boolean) => void
-
-    // New prop to control radius styling
-    isFileOpen?: boolean 
-
+    isFileOpen?: boolean
     itemsPerPage: number
     currentPage: number
     totalPages: number
@@ -63,10 +58,10 @@ export function KBTerminal({
     onOpenFile,
     itemsPerPage,
     currentPage,
-    totalPages,
+    totalPages: propTotalPages, 
     onPageChange,
     onEditModeChange,
-    isFileOpen = false, 
+    isFileOpen = false,
     }: KBTerminalProps) {
 
     /* -------------------- STATE -------------------- */
@@ -92,17 +87,26 @@ export function KBTerminal({
     )
 
     /* -------------------- EDIT FLOW -------------------- */
-    const handleEnterEditMode = React.useCallback(() => {
+    const handleEnterEditMode = React.useCallback((targetChunkId?: number) => {
         setInputValue("")
         setAppliedSearch("")
-        setOpenChunks([])
+        
         setEditChunks([...activeChunks])
         setIsEditing(true)
         onEditModeChange?.(true)
+
+        if (targetChunkId) {
+        setEditingChunkId(targetChunkId)       
+        setOpenChunks([`chunk-${targetChunkId}`]) 
+        } else {
+        setOpenChunks([]) 
+        }
     }, [activeChunks, onEditModeChange])
 
     const handleSaveEdit = React.useCallback(() => {
         setActiveChunks(editChunks)
+        setInputValue("")
+        setAppliedSearch("")
         setIsEditing(false)
         setEditingChunkId(null)
         onEditModeChange?.(false)
@@ -114,54 +118,87 @@ export function KBTerminal({
         onEditModeChange?.(false)
     }, [onEditModeChange])
 
+    const handleAddChunk = React.useCallback(() => {
+        setEditChunks((prev) => {
+        const maxId = prev.length > 0 ? Math.max(...prev.map((c) => c.id)) : 0
+        const newChunk: KBChunk = {
+            id: maxId + 1,
+            charsNoSpace: 0,
+            charsWithSpace: 0,
+            source: "manual_entry",
+            content: "New chunk content...",
+        }
+        return [...prev, newChunk]; 
+        })
+
+        setTimeout(() => {
+            const newTotal = Math.ceil((editChunks.length + 1) / itemsPerPage);
+            onPageChange(newTotal > 0 ? newTotal : 1);
+        }, 0)
+        
+    }, [editChunks.length, itemsPerPage, onPageChange])
+
+    // NEW: Delete Handler
+    const handleDeleteChunk = React.useCallback((idToDelete: number) => {
+        setEditChunks((prev) => {
+            const updated = prev.filter(c => c.id !== idToDelete);
+            
+            // Check pagination safety immediately after update
+            const newTotalPages = Math.ceil(updated.length / itemsPerPage);
+            if (currentPage > newTotalPages && newTotalPages > 0) {
+                onPageChange(newTotalPages);
+            }
+            
+            return updated;
+        });
+    }, [currentPage, itemsPerPage, onPageChange]);
+
     /* -------------------- PAGINATION CALCULATIONS -------------------- */
-    
-    // Filter for View Mode
     const filteredChunks = React.useMemo(() => {
         if (!appliedSearch) return activeChunks
         const q = appliedSearch.toLowerCase()
-        return activeChunks.filter(chunk =>
-        chunk.content.toLowerCase().includes(q) ||
-        chunk.source.toLowerCase().includes(q) ||
-        chunk.id.toString().includes(q)
+        return activeChunks.filter(
+        (chunk) =>
+            chunk.content.toLowerCase().includes(q) ||
+            chunk.source.toLowerCase().includes(q) ||
+            chunk.id.toString().includes(q)
         )
     }, [activeChunks, appliedSearch])
 
-    // Pagination for View Mode
+    const currentTotalItems = isEditing ? editChunks.length : filteredChunks.length
+    const calculatedTotalPages = Math.ceil(currentTotalItems / itemsPerPage)
+
     const paginatedViewChunks = React.useMemo(() => {
         const start = (currentPage - 1) * itemsPerPage
         return filteredChunks.slice(start, start + itemsPerPage)
     }, [filteredChunks, currentPage, itemsPerPage])
 
-    // Pagination for Edit Mode
     const paginatedEditChunks = React.useMemo(() => {
         const start = (currentPage - 1) * itemsPerPage
         return editChunks.slice(start, start + itemsPerPage)
     }, [editChunks, currentPage, itemsPerPage])
 
-
     /* -------------------- HANDLERS -------------------- */
-
     const handleDragEnd = React.useCallback((event: DragEndEvent) => {
         const { active, over } = event
         if (!over || active.id === over.id) return
 
         setEditChunks((items) => {
-        const oldIndex = items.findIndex(i => i.id === active.id)
-        const newIndex = items.findIndex(i => i.id === over.id)
+        const oldIndex = items.findIndex((i) => i.id === active.id)
+        const newIndex = items.findIndex((i) => i.id === over.id)
         return arrayMove(items, oldIndex, newIndex)
         })
     }, [])
 
     const handleContentChange = React.useCallback((id: number, newContent: string) => {
-        setEditChunks(prev =>
-        prev.map(c => (c.id === id ? { ...c, content: newContent } : c))
+        setEditChunks((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, content: newContent } : c))
         )
     }, [])
 
     const handleSearchTrigger = React.useCallback(() => {
         setAppliedSearch(inputValue)
-        onPageChange(1) // Reset to page 1 on search
+        onPageChange(1) 
     }, [inputValue, onPageChange])
 
     const handleReset = React.useCallback(() => {
@@ -175,18 +212,15 @@ export function KBTerminal({
     }, [])
 
     const handleExpandAll = React.useCallback(() => {
-        // Determine which set of chunks we are currently viewing
         const visibleChunks = isEditing ? paginatedEditChunks : paginatedViewChunks
-        setOpenChunks(visibleChunks.map(c => `chunk-${c.id}`))
+        setOpenChunks(visibleChunks.map((c) => `chunk-${c.id}`))
     }, [isEditing, paginatedEditChunks, paginatedViewChunks])
 
-    // Auto-expand searched items
     React.useEffect(() => {
         if (appliedSearch) {
-        setOpenChunks(paginatedViewChunks.map(c => `chunk-${c.id}`))
+        setOpenChunks(paginatedViewChunks.map((c) => `chunk-${c.id}`))
         }
     }, [appliedSearch, paginatedViewChunks])
-
 
     /* -------------------- TYPEWRITER -------------------- */
     const { display, cursor } = useTypewriter(
@@ -198,10 +232,10 @@ export function KBTerminal({
     const isEmpty = activeChunks.length === 0 && !loading
 
     return (
-        <div className={`flex-1 flex flex-col relative overflow-hidden h-full
-        ${isEditing ? "bg-transparent border-0" : "bg-transparent"}`}>
-        
-        {/* 1. Empty State (Centered) */}
+        <div
+        className={`flex-1 flex flex-col relative overflow-hidden h-full
+            ${isEditing ? "bg-transparent border-0" : "bg-transparent"}`}
+        >
         {isEmpty && (
             <div className="flex-1 flex flex-col items-center justify-center text-slate-400 h-full bg-slate-50/50">
             <TerminalIcon size={48} className="mb-4 opacity-20" />
@@ -209,10 +243,8 @@ export function KBTerminal({
             </div>
         )}
 
-        {/* 2. Content State */}
         {!isEmpty && (
             <div className="flex-1 flex flex-col overflow-hidden h-full">
-
             <TerminalHeader
                 loading={loading}
                 display={display}
@@ -221,7 +253,7 @@ export function KBTerminal({
                 onCollapseAll={handleCollapseAll}
                 onExpandAll={handleExpandAll}
                 currentChunk={currentPage}
-                totalChunks={totalPages}
+                totalChunks={calculatedTotalPages} 
                 onChunkChange={onPageChange}
             />
 
@@ -230,24 +262,21 @@ export function KBTerminal({
                 setInputValue={setInputValue}
                 onSearchTrigger={handleSearchTrigger}
                 isEditing={isEditing}
-                onEnterEditMode={handleEnterEditMode}
+                onEnterEditMode={() => handleEnterEditMode()} 
                 onSaveEdit={handleSaveEdit}
                 onCancelEdit={handleCancelEdit}
+                onAddChunk={handleAddChunk}
             />
 
-                {/* Edit Mode Warning Banner */}
-                {!loading && isEditing && (
-                    <div className="bg-blue-50 px-4 py-1.5 border-b border-blue-100 text-[10px] font-medium text-blue-600 flex items-center gap-2 justify-center">
-                        <AlertCircle size={12} />
-                        <span className="flex items-center gap-1">
-                        Editor Active: Drag items or click
-                        <MoreHorizontal size={12} className="opacity-70" />
-                        to edit text
-                        </span>
-                    </div>
-                )}
+            {!loading && isEditing && (
+                <div className="bg-blue-50 px-4 py-1.5 border-b border-blue-100 text-[10px] font-medium text-blue-600 flex items-center gap-2 justify-center">
+                <AlertCircle size={12} />
+                <span className="flex items-center gap-1">
+                    Editor Active: Double-click content to edit text or drag to reorder
+                </span>
+                </div>
+            )}
 
-            {/* Metadata Banner (View Mode Only) */}
             {!loading && !isEditing && (
                 <div className="bg-white border-b px-4 py-3 grid grid-cols-1 md:grid-cols-3 gap-4 shadow-sm shrink-0">
                 <InfoItem icon={<Bot size={14} />} color="blue" label="Active Agent" value={metadata.agent} />
@@ -256,31 +285,32 @@ export function KBTerminal({
                 </div>
             )}
 
-            {/* Scrollable Content Area */}
             <div className="flex-1 overflow-y-auto bg-slate-50 rounded-e-sm">
                 {isEditing ? (
                 <div className="p-4">
-                    <DndContext 
-                        sensors={sensors} 
-                        collisionDetection={closestCenter} 
-                        onDragEnd={handleDragEnd}
+                    <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
                     >
-                    {/* Important: SortableContext must receive IDs of currently rendered items */}
-                    <SortableContext 
-                        items={paginatedEditChunks.map(c => c.id)} 
+                    <SortableContext
+                        items={paginatedEditChunks.map((c) => c.id)}
                         strategy={verticalListSortingStrategy}
                     >
                         <Accordion type="multiple" value={openChunks} onValueChange={setOpenChunks}>
-                        {paginatedEditChunks.map(chunk => (
+                        {paginatedEditChunks.map((chunk) => (
                             <DragChunkItem
                             key={chunk.id}
                             chunk={chunk}
                             isTextEditing={editingChunkId === chunk.id}
+                            isEditingMode={isEditing}
                             onToggleTextEdit={() =>
-                                setEditingChunkId(prev => (prev === chunk.id ? null : chunk.id))
+                                setEditingChunkId((prev) => (prev === chunk.id ? null : chunk.id))
                             }
                             onContentChange={(val) => handleContentChange(chunk.id, val)}
                             onOpenFile={onOpenFile}
+                            // Pass delete handler
+                            onDelete={() => handleDeleteChunk(chunk.id)}
                             />
                         ))}
                         </Accordion>
@@ -295,13 +325,14 @@ export function KBTerminal({
                     </div>
                     )}
 
-                    {paginatedViewChunks.map(chunk => (
+                    {paginatedViewChunks.map((chunk) => (
                     <TerminalChunkItem
                         key={chunk.id}
                         chunk={chunk}
                         searchQuery={appliedSearch}
                         isEditing={false}
                         onOpenFile={onOpenFile}
+                        onTriggerGlobalEdit={() => handleEnterEditMode(chunk.id)}
                     />
                     ))}
                 </Accordion>
@@ -313,7 +344,6 @@ export function KBTerminal({
     )
 }
 
-/* -------------------- INFO ITEM -------------------- */
 function InfoItem({ icon, color, label, value }: any) {
     const colorClasses: Record<string, string> = {
         blue: "bg-blue-50 text-blue-600",
