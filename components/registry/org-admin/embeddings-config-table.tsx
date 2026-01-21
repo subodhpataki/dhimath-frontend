@@ -4,11 +4,22 @@ import React from "react"
 import { ColumnDef } from "@tanstack/react-table"
 import { DataTable } from "@/components/greywiz-ui/data-table"
 import { Button } from "@/components/greywiz-ui/button"
-import { Edit, Trash2 } from "lucide-react"
-import Image, { StaticImageData } from "next/image"
-import { EditEmbeddingSheet } from "./edit-embeddings-sheet"
-import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/greywiz-ui/alert-dialog"
+import { Trash2 } from "lucide-react"
 import { showToast } from "@/lib/toast"
+import { EditEmbeddingSheet } from "./edit-embeddings-sheet"
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/greywiz-ui/alert-dialog"
+import { maskApiKey } from "@/lib/mask-api-key"
+import Image from "next/image"
 
 export type EmbeddingRow = {
   id: string
@@ -19,88 +30,142 @@ export type EmbeddingRow = {
   model: string
   maxTokens: number
   apiEndpoint: string
-  logoUrl?: StaticImageData
+  logoUrl: any
   createdAt: string
 }
 
 interface EmbeddingsTableProps {
   data: EmbeddingRow[]
-  setEmbeddings: React.Dispatch<React.SetStateAction<EmbeddingRow[]>>
+  onSave: (updatedRow: EmbeddingRow) => void
+  onDelete: (id: string) => void
 }
 
-export default function EmbeddingsConfigTable({ data, setEmbeddings }: EmbeddingsTableProps) {
+export default function EmbeddingsTable({ data, onSave, onDelete }: EmbeddingsTableProps) {
   const columns: ColumnDef<EmbeddingRow>[] = [
     {
       accessorKey: "provider",
-      header: () => <div className="pl-2 text-sm font-medium text-slate-500">Provider</div>,
+      header: () => (
+        <div className="pl-2 text-sm font-medium text-slate-500">
+          Provider
+        </div>
+      ),
       cell: ({ row }) => {
-        const { provider, logoUrl } = row.original
+        const provider = row.getValue("provider") as string
+        const logoUrl = row.original.logoUrl
         return (
-          <div className="flex items-center gap-2 pl-2 max-w-40">
-            {logoUrl && <Image src={logoUrl} alt={provider} width={18} height={18} className="rounded object-contain" />}
-            <span title={provider} className="truncate text-slate-800">{provider}</span>
+          <div className="pl-2 flex items-center gap-2 max-w-40">
+            <Image src={logoUrl} alt={provider} width={18} height={18} />
+            <span className="text-slate-800 font-medium">{provider}</span>
           </div>
         )
       },
     },
     {
-      accessorKey: "model",
-      header: () => <div className="pl-1 text-sm font-medium text-slate-500">Model</div>,
-      cell: ({ row }) => <div className="pl-1 max-w-40 truncate text-slate-700">{row.getValue("model") as string}</div>,
-    },
-    {
       accessorKey: "apiEndpoint",
-      header: () => <div className="pl-1 text-sm font-medium text-slate-500">API Endpoint</div>,
-      cell: ({ row }) => <div className="pl-1 max-w-52 truncate text-slate-700">{row.getValue("apiEndpoint") as string}</div>,
+      header: () => (
+        <div className="pl-1 text-sm font-medium text-slate-500">
+          API Endpoint
+        </div>
+      ),
+      cell: ({ row }) => {
+        const apiEndpoint = row.getValue("apiEndpoint") as string
+        return (
+          <code className="inline-block max-w-44 truncate pl-1 px-2 py-1 text-xs text-slate-700">
+            {apiEndpoint}
+          </code>
+        )
+      },
     },
     {
-      accessorKey: "maxTokens",
-      header: () => <div className="text-right text-slate-500 font-medium">Max Tokens</div>,
-      cell: ({ row }) => <div className="text-right font-semibold text-slate-900">{row.getValue("maxTokens")}</div>,
+      id: "apiKey",
+      header: () => (
+        <div className="pl-1 text-sm font-medium text-slate-500">
+          API Key
+        </div>
+      ),
+      cell: ({ row }) => {
+        const apiKey = row.original.apiKeyMasked
+        return (
+          <code className="inline-block max-w-40 truncate rounded bg-muted px-2 py-1 text-xs text-slate-700">
+            {maskApiKey(apiKey)}
+          </code>
+        )
+      },
+    },
+    {
+      id: "apiSecret",
+      header: () => (
+        <div className="pl-1 text-sm font-medium text-slate-500">
+          API Secret
+        </div>
+      ),
+      cell: ({ row }) => {
+        const apiSecret = row.original.apiSecretMasked
+        return (
+          <code className="inline-block max-w-40 truncate rounded bg-muted px-2 py-1 text-xs text-slate-700">
+            {maskApiKey(apiSecret)}
+          </code>
+        )
+      },
     },
     {
       accessorKey: "createdAt",
-      header: () => <div className="pl-1 text-sm font-medium text-slate-500">Created</div>,
+      header: () => (
+        <div className="pl-1 text-sm font-medium text-slate-500">
+          Created
+        </div>
+      ),
       cell: ({ row }) => {
         const date = new Date(row.getValue("createdAt") as string)
-        return <div className="pl-1 text-sm text-slate-600 whitespace-nowrap">{date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</div>
+        return (
+          <div className="pl-1 text-sm text-slate-600 whitespace-nowrap">
+            {date.toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })}
+          </div>
+        )
       },
     },
     {
       id: "actions",
-      header: () => <div className="text-center text-sm font-medium text-slate-500">Actions</div>,
+      header: () => (
+        <div className="text-center text-sm font-medium text-slate-500">
+          Actions
+        </div>
+      ),
       cell: ({ row }) => {
         const embedding = row.original
-
-        const handleSave = (updatedRow: EmbeddingRow) => {
-          setEmbeddings(prev => prev.map(e => e.id === updatedRow.id ? updatedRow : e))
-          showToast("warning", "Embedding updated successfully!");
-        }
-
         return (
           <div className="flex justify-center gap-2">
-            <EditEmbeddingSheet row={embedding} onSave={handleSave} />
-
+            <EditEmbeddingSheet
+              row={embedding}
+              onSave={onSave}
+            />
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="hover:cursor-pointer">
-                  <Trash2 className="h-4 w-4 text-red-600" />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="hover:cursor-pointer"
+                >
+                  <Trash2 className="h-4 w-4 text-red-500" />
                 </Button>
               </AlertDialogTrigger>
-
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Delete embedding?</AlertDialogTitle>
-                  <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+                  <AlertDialogTitle>Delete Embedding settings?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete the
+                    selected embedding configuration.
+                  </AlertDialogDescription>
                 </AlertDialogHeader>
-
                 <AlertDialogFooter>
                   <AlertDialogCancel className="hover:cursor-pointer">Cancel</AlertDialogCancel>
-                  <AlertDialogAction className="bg-red-500 hover:bg-red-600 hover:cursor-pointer"
-                    onClick={() => {
-                      setEmbeddings(prev => prev.filter(e => e.id !== embedding.id))
-                      showToast("error", "Embedding deleted successfully!")
-                    }}
+                  <AlertDialogAction
+                    className="bg-red-500 hover:bg-red-600 hover:cursor-pointer"
+                    onClick={() => onDelete(embedding.id)}
                   >
                     Delete
                   </AlertDialogAction>
@@ -112,8 +177,16 @@ export default function EmbeddingsConfigTable({ data, setEmbeddings }: Embedding
       },
       enableSorting: false,
       enableHiding: false,
-    },
+    }
   ]
 
-  return <DataTable columns={columns} data={data} searchKey="provider" searchPlaceholder="Filter embeddings..." pageSize={6} />
+  return (
+    <DataTable
+      columns={columns}
+      data={data}
+      searchKey="provider"
+      searchPlaceholder="Filter embeddings..."
+      pageSize={6}
+    />
+  )
 }

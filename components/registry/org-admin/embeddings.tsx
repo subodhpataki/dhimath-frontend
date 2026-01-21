@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Button } from "@/components/greywiz-ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetTrigger } from "@/components/greywiz-ui/sheet"
@@ -17,13 +17,15 @@ import { Label } from "@/components/greywiz-ui/label"
 
 import EmbeddingsConfigTable, { EmbeddingRow } from "./embeddings-config-table"
 import { embeddingSaveBtn } from "./btns/saveFunctions"
+import { fetchEmbeddingsConfig, saveEmbeddingsConfig } from "@/lib/services/embeddings-config.api"
+import { mapEmbeddingsConfigurationsToEmbeddingRows } from "@/lib/services/mappers/embeddings-config.mapper"
+import { showToast } from "@/lib/toast"
 
 import openai from "@/public/openai.png"
 import claude from "@/public/claude.png"
 import perplexity from "@/public/perplexity.png"
 import gemini from "@/public/gemini.png"
 import grok from "@/public/grok.png"
-import { showToast } from "@/lib/toast"
 
 const EMBEDDING_LOGOS: Record<string, any> = {
   openai,
@@ -36,21 +38,7 @@ const EMBEDDING_LOGOS: Record<string, any> = {
 
 export default function EmbeddingsConfig() {
   const [open, setOpen] = useState(false)
-  const [embeddings, setEmbeddings] = useState<EmbeddingRow[]>([
-    {
-      id: "emb_1",
-      provider: "OpenAI",
-      apiKeyMasked: "sk-live-9f8sdf8sdf8sdf8sdf8sdf",
-      apiSecretMasked: "sk-ant-api03-abcdef123456789",
-      apiVersion: "2024-05-01",
-      model: "text-embedding-3-large",
-      maxTokens: 8192,
-      apiEndpoint: "https://api.openai.com/v1/embeddings",
-      logoUrl: openai,
-      createdAt: "2026-01-05",
-    },
-  ])
-
+  const [embeddings, setEmbeddings] = useState<EmbeddingRow[]>([])
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null)
   const [apiKey, setApiKey] = useState("")
   const [apiSecret, setApiSecret] = useState("")
@@ -58,6 +46,18 @@ export default function EmbeddingsConfig() {
   const [maxTokens, setMaxTokens] = useState(0)
   const [apiEndpoint, setApiEndpoint] = useState("")
   const [apiVersion, setApiVersion] = useState("")
+
+  useEffect(() => {
+    const loadEmbeddings = async () => {
+      try {
+        const response = await fetchEmbeddingsConfig()
+        setEmbeddings(mapEmbeddingsConfigurationsToEmbeddingRows(response.embeddings_configurations || []))
+      } catch (error) {
+        showToast("error", "Failed to load embeddings configuration")
+      }
+    }
+    loadEmbeddings()
+  }, [])
 
   const handleCancel = () => {
     setOpen(false)
@@ -70,46 +70,101 @@ export default function EmbeddingsConfig() {
     setApiVersion("")
   }
 
-  const handleSaveEmbedding = () => {
+  const handleSaveEmbedding = async () => {
     if (
-    !selectedProvider ||
-    !apiKey.trim() ||
-    !apiSecret.trim()
-  ) {
-    showToast(
-      "error",
-      "Missing required fields"
-    )
-    return
+      !selectedProvider ||
+      !apiKey.trim() ||
+      !apiSecret.trim()
+    ) {
+      showToast(
+        "error",
+        "Missing required fields"
+      )
+      return
+    }
+
+    const newEmbedding: EmbeddingRow = {
+      id: crypto.randomUUID(),
+      provider: selectedProvider,
+      apiKeyMasked: apiKey,
+      apiSecretMasked: apiSecret,
+      model,
+      maxTokens,
+      apiEndpoint,
+      apiVersion,
+      logoUrl: EMBEDDING_LOGOS[selectedProvider],
+      createdAt: new Date().toISOString(),
+    }
+
+    const updatedEmbeddings = [...embeddings, newEmbedding]
+
+    try {
+      await saveEmbeddingsConfig(1, {
+        embeddings_configurations: updatedEmbeddings.map(row => ({
+          provider: row.provider,
+          api_key: row.apiKeyMasked,
+          api_secret: row.apiSecretMasked,
+          model: row.model,
+          max_tokens: row.maxTokens,
+          api_endpoint: row.apiEndpoint,
+          api_version: row.apiVersion,
+        }))
+      })
+      setEmbeddings(updatedEmbeddings)
+      setOpen(false)
+      setSelectedProvider(null)
+      setApiKey("")
+      setApiSecret("")
+      setModel("")
+      setMaxTokens(0)
+      setApiEndpoint("")
+      setApiVersion("")
+      showToast("success", "Embedding saved successfully")
+    } catch (error) {
+      showToast("error", "Failed to save embedding")
+    }
   }
 
-    const success = embeddingSaveBtn()
-    if (!success) return
+  const handleSaveEmbeddingUpdate = async (updatedRow: EmbeddingRow) => {
+    const updatedEmbeddings = embeddings.map(row => row.id === updatedRow.id ? updatedRow : row)
+    try {
+      await saveEmbeddingsConfig(1, {
+        embeddings_configurations: updatedEmbeddings.map(row => ({
+          provider: row.provider,
+          api_key: row.apiKeyMasked,
+          api_secret: row.apiSecretMasked,
+          model: row.model,
+          max_tokens: row.maxTokens,
+          api_endpoint: row.apiEndpoint,
+          api_version: row.apiVersion,
+        }))
+      })
+      setEmbeddings(updatedEmbeddings)
+      showToast("success", "Embedding updated successfully")
+    } catch (error) {
+      showToast("error", "Failed to update embedding")
+    }
+  }
 
-    setEmbeddings(prev => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        provider: selectedProvider,
-        apiKeyMasked: apiKey,
-        apiSecretMasked: apiSecret,
-        model,
-        maxTokens,
-        apiEndpoint,
-        apiVersion,
-        logoUrl: EMBEDDING_LOGOS[selectedProvider],
-        createdAt: new Date().toISOString(),
-      },
-    ])
-
-    setOpen(false)
-    setSelectedProvider(null)
-    setApiKey("")
-    setApiSecret("")
-    setModel("")
-    setMaxTokens(0)
-    setApiEndpoint("")
-    setApiVersion("")
+  const handleDeleteEmbedding = async (id: string) => {
+    const updatedEmbeddings = embeddings.filter(row => row.id !== id)
+    try {
+      await saveEmbeddingsConfig(1, {
+        embeddings_configurations: updatedEmbeddings.map(row => ({
+          provider: row.provider,
+          api_key: row.apiKeyMasked,
+          api_secret: row.apiSecretMasked,
+          model: row.model,
+          max_tokens: row.maxTokens,
+          api_endpoint: row.apiEndpoint,
+          api_version: row.apiVersion,
+        }))
+      })
+      setEmbeddings(updatedEmbeddings)
+      showToast("success", "Embedding deleted successfully")
+    } catch (error) {
+      showToast("error", "Failed to delete embedding")
+    }
   }
 
   return (
@@ -217,7 +272,7 @@ export default function EmbeddingsConfig() {
         </Sheet>
       </div>
 
-      <EmbeddingsConfigTable data={embeddings} setEmbeddings={setEmbeddings} />
+      <EmbeddingsConfigTable data={embeddings} onSave={handleSaveEmbeddingUpdate} onDelete={handleDeleteEmbedding} />
     </div>
   )
 }
