@@ -30,13 +30,13 @@ export type LLMRow = {
   createdAt: string
 }
 
-
 interface LLMTableProps {
   data: LLMRow[]
-  setLlms: React.Dispatch<React.SetStateAction<LLMRow[]>>
+  onSave: (updatedRow: LLMRow) => void
+  onDelete: (id: string) => void
 }
 
-export default function LLMTable({ data, setLlms }: LLMTableProps) {
+export default function LLMTable({ data, onSave, onDelete }: LLMTableProps) {
   const columns: ColumnDef<LLMRow>[] = [
     {
       accessorKey: "name",
@@ -150,21 +150,11 @@ export default function LLMTable({ data, setLlms }: LLMTableProps) {
       cell: ({ row }) => {
         const llm = row.original
 
-        const handleSave = (updatedRow: LLMRow) => {
-          setLlms((prev) =>
-            prev.map((llm) =>
-              llm.id === updatedRow.id ? updatedRow : llm
-            )
-          )
-
-          showToast("warning", "LLM updated successfully!")
-        }
-
         return (
           <div className="flex justify-center gap-2">
             <EditLLMConfigSheet
               row={llm}
-              onSave={handleSave}
+              onSave={onSave}
             />
 
             <AlertDialog>
@@ -192,13 +182,7 @@ export default function LLMTable({ data, setLlms }: LLMTableProps) {
 
                   <AlertDialogAction
                     className="bg-red-500 hover:bg-red-600 hover:cursor-pointer"
-                    onClick={() => {
-                      setLlms((prev) =>
-                        prev.filter((item) => item.id !== llm.id)
-                      )
-
-                      showToast("error", "LLM deleted successfully!")
-                    }}
+                    onClick={() => onDelete(llm.id)}
                   >
                     Delete
                   </AlertDialogAction>
@@ -224,4 +208,3 @@ export default function LLMTable({ data, setLlms }: LLMTableProps) {
     />
   )
 }
-  

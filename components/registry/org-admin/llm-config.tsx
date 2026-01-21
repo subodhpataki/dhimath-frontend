@@ -1,8 +1,6 @@
 "use client"
 
-import { useState } from "react"
-import { Input } from "@/components/greywiz-ui/input"
-import { Label } from "@/components/greywiz-ui/label"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/greywiz-ui/button"
 import {
   Sheet,
@@ -14,83 +12,118 @@ import {
 } from "@/components/greywiz-ui/sheet"
 
 import { FileSliders, Plus, Save } from "lucide-react"
-import { llmConfigSaveBtn } from "./btns/saveFunctions"
+import { showToast } from "@/lib/toast"
 import Image from "next/image"
 
-import LLMConfigTable, { LLMRow } from "./llm-config-table"
-
-import openAI from "@/public/openai.png"
-import claude from "@/public/claude.png"
-
-const MAX_LOGO_SIZE_MB = 2
+import LLMConfigTable from "./llm-config-table"
+import DynamicLLMField from "./dynamic-llm-field"
+import { fetchLLMConfig, saveLLMConfig } from "@/lib/services/llm-config.api"
+import { LLMConfigAPIResponse, LLMConfiguration } from "@/lib/services/types/llm-config.types"
+import { mapLLMConfigurationsToLLMRows, mapLLMRowToLLMConfiguration, getFieldLabel } from "@/lib/services/mappers/llm-config.mapper"
+import { LLMRow } from "./llm-config-table"
+import { Label } from "@/components/greywiz-ui/label"
+import { Input } from "@/components/greywiz-ui/input"
 
 export default function LLMConfig() {
-  const [llms, setLlms] = useState<LLMRow[]>([
-    {
-      id: "llm_1",
-      name: "OpenAI GPT-4",
-      apiKey: "sk-live-9f8sdf8sdf8sdf8sdf8sdf",
-      logoUrl: openAI,
-      model: "4o",
-      createdAt: "2026-01-05",
-    },
-    {
-      id: "llm_2",
-      name: "Claude",
-      apiKey: "sk-ant-api03-abcdef123456789",
-      logoUrl: claude,
-      model: "opus",
-      createdAt: "2026-01-03",
-    },
-  ])
+  const [rawConfig, setRawConfig] = useState<LLMConfigAPIResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  const llms = rawConfig ? mapLLMConfigurationsToLLMRows(rawConfig.config.llm_configurations) : []
+
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        // Remove pre-existing data by setting empty config
+        setRawConfig({
+          status: "success",
+          message: "Configuration loaded",
+          org_id: 1,
+          config: { llm_configurations: [] }
+        })
+      } catch (error) {
+        showToast("error", "Failed to load LLM config")
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadConfig()
+  }, [])
 
   const [open, setOpen] = useState(false)
-  const [name, setName] = useState("")
-  const [model, setModel] = useState("")
-  const [apiKey, setApiKey] = useState("")
-  const [logo, setLogo] = useState<string | null>(null)
-
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    const fileSizeMB = file.size / (1024 * 1024)
-    if (fileSizeMB > MAX_LOGO_SIZE_MB) {
-      alert(`File size should not exceed ${MAX_LOGO_SIZE_MB}MB`)
-      e.target.value = ""
-      return
-    }
-
-    const previewUrl = URL.createObjectURL(file)
-    setLogo(previewUrl)
-  }
+  const [formData, setFormData] = useState<Record<string, string>>({
+    llm_name: "",
+    llm_model: "",
+    llm_api_key: "",
+    llm_logo_url: "",
+  })
 
   const handleCancel = () => {
     setOpen(false)
-    setLogo(null)
+    setFormData({
+      llm_name: "",
+      llm_model: "",
+      llm_api_key: "",
+      llm_logo_url: "",
+    })
   }
 
-  const handleSaveLLM = () => {
-    const success = llmConfigSaveBtn()
-    if (!success) return
-
-    setLlms((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        name,
-        model,
-        apiKey: apiKey,
-        logoUrl: logo ?? undefined,
-        createdAt: new Date().toISOString(),
-      },
-    ])
-
-    setOpen(false)
-    setName("")
-    setModel("")
-    setApiKey("")
+  const handleSaveLLM = async () => {
+    if (!rawConfig) return
+    try {
+      const updatedFormData = { ...formData }
+      const updatedConfigs = [...rawConfig.config.llm_configurations, updatedFormData]
+      await saveLLMConfig(rawConfig.org_id, { llm_configurations: updatedConfigs })
+      setRawConfig({
+        ...rawConfig,
+        config: { llm_configurations: updatedConfigs }
+      })
+      setOpen(false)
+      setFormData({
+        llm_name: "",
+        llm_model: "",
+        llm_api_key: "",
+        llm_logo_url: "",
+      })
+      showToast("success", "LLM added successfully")
+    } catch (error) {
+      showToast("error", "Failed to save LLM")
+    }
   }
+
+  const handleSaveLLMUpdate = async (updatedRow: LLMRow) => {
+    if (!rawConfig) return
+    const index = parseInt(updatedRow.id.replace("llm_", ""))
+    const updatedConfigs = [...rawConfig.config.llm_configurations]
+    updatedConfigs[index] = mapLLMRowToLLMConfiguration(updatedRow)
+    try {
+      await saveLLMConfig(rawConfig.org_id, { llm_configurations: updatedConfigs })
+      setRawConfig({
+        ...rawConfig,
+        config: { llm_configurations: updatedConfigs }
+      })
+      showToast("success", "LLM updated successfully")
+    } catch (error) {
+      showToast("error", "Failed to update LLM")
+    }
+  }
+
+  const handleDeleteLLM = async (id: string) => {
+    if (!rawConfig) return
+    const index = parseInt(id.replace("llm_", ""))
+    const updatedConfigs = rawConfig.config.llm_configurations.filter((_, i) => i !== index)
+    try {
+      await saveLLMConfig(rawConfig.org_id, { llm_configurations: updatedConfigs })
+      setRawConfig({
+        ...rawConfig,
+        config: { llm_configurations: updatedConfigs }
+      })
+      showToast("success", "LLM deleted successfully")
+    } catch (error) {
+      showToast("error", "Failed to delete LLM")
+    }
+  }
+
+  if (loading) return <div>Loading...</div>
 
   return (
     <div className="space-y-4">
@@ -118,48 +151,68 @@ export default function LLMConfig() {
           >
             <SheetHeader className="pb-2">
               <SheetTitle className="flex items-center gap-2 text-base">
-                {logo ? (
-                  <Image
-                    src={logo}
-                    alt="LLM Logo"
-                    width={18}
-                    height={18}
-                    className="rounded-sm object-contain"
-                  />
-                ) : (
-                  <FileSliders className="w-4 h-4" />
-                )}
+                <FileSliders className="w-4 h-4" />
                 LLM Configuration
               </SheetTitle>
             </SheetHeader>
 
             <div className="mt-3 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 items-center">
-                <Label className="gap-1">LLM Name<span className="text-red-500">*</span></Label>
-                <Input placeholder="e.g. OpenAI GPT-4" value={name} onChange={(e) => setName(e.target.value)} />
+              {Object.keys(formData).filter(key => key !== "llm_logo_url").map((key) => (
+                <DynamicLLMField
+                  key={key}
+                  fieldKey={key}
+                  value={(formData[key as keyof LLMConfiguration] as string) || ""}
+                  onChange={(value) => setFormData({ ...formData, [key]: value })}
+                  label={getFieldLabel(key)}
+                />
+              ))}
+              {/* Replace logo URL field with file upload */}
+              <div className="space-y-2">
+                <Label className="text-xs font-medium">
+                  {getFieldLabel("llm_logo_url")}
+                </Label>
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = () => {
+                        setFormData({ ...formData, llm_logo_url: reader.result as string });
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="w-full text-sm border"
+                />
               </div>
+            </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 items-center">
-                <Label className="gap-1">Model<span className="text-red-500">*</span></Label>
-                <Input placeholder="e.g. gpt-4o / claude-opus" value={model} onChange={(e) => setModel(e.target.value)} />
-              </div>
+            {/* Preview */}
+            <div className="mt-3 inline-flex rounded-md border px-2.5 py-2">
+              <div className="flex items-center gap-2.5">
+                {/* Logo */}
+                <div className="flex h-8 w-8 items-center justify-center rounded border bg-slate-100">
+                  {formData.llm_logo_url && typeof formData.llm_logo_url === "string" ? (
+                    <img
+                      src={formData.llm_logo_url as string}
+                      alt={(formData.llm_name as string) || "LLM Logo"}
+                      className="h-5 w-5 object-contain"
+                    />
+                  ) : (
+                    <span className="text-[9px] font-medium text-slate-400">LLM</span>
+                  )}
+                </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 items-center">
-                <Label className="gap-1">API Key<span className="text-red-500">*</span></Label>
-                <Input placeholder="**-***" value={apiKey} onChange={(e) => setApiKey(e.target.value)} />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
-                <Label className="gap-1">LLM Logo<span className="text-red-500">*</span></Label>
-                <div>
-                  <Input
-                    type="file"
-                    accept="image/png,image/jpeg"
-                    onChange={handleLogoUpload}
-                  />
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Max file size: {MAX_LOGO_SIZE_MB} MB (PNG, JPG)
-                  </p>
+                {/* Text */}
+                <div className="flex flex-col leading-tight">
+                  <span className="text-xs font-medium text-slate-800">
+                    {formData.llm_name || "LLM Name"}
+                  </span>
+                  <span className="text-[10px] text-slate-500">
+                    Preview
+                  </span>
                 </div>
               </div>
             </div>
@@ -172,8 +225,10 @@ export default function LLMConfig() {
               >
                 Cancel
               </Button>
-              <Button className="w-full sm:w-auto hover:cursor-pointer"
-                onClick={handleSaveLLM}>
+              <Button
+                className="w-full sm:w-auto hover:cursor-pointer"
+                onClick={handleSaveLLM}
+              >
                 Save LLM
                 <Save className="w-4 h-4" />
               </Button>
@@ -182,7 +237,11 @@ export default function LLMConfig() {
         </Sheet>
       </div>
 
-      <LLMConfigTable data={llms} setLlms={setLlms} />
+      <LLMConfigTable
+        data={llms}
+        onSave={handleSaveLLMUpdate}
+        onDelete={handleDeleteLLM}
+      />
     </div>
   )
 }
